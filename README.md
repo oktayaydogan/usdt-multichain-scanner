@@ -210,3 +210,85 @@ Safe for rate-limited APIs.
 See `examples/worker.php` for a cron/queue-friendly pattern.
 
 ---
+
+
+---
+
+## Advanced Retry & Backoff Configuration
+
+You can fine-tune retry behavior per network.
+
+```php
+'bsc' => [
+  'enabled' => true,
+  'type' => 'evm',
+  'address' => '0x...',
+  'api_key' => 'BSCSCAN_KEY',
+  'retry' => [
+    'retries' => 3,
+    'base_backoff_ms' => 500,
+  ],
+],
+```
+
+Features:
+- Exponential backoff
+- Jitter (prevents thundering herd)
+- Retries on 429 / 5xx
+- Separate config per network
+
+---
+
+
+---
+
+## Observability (Logging & Metrics)
+
+The scanner supports pluggable observability via an `Observer` interface.
+
+You can hook:
+- Logs (PSR-3 compatible adapters)
+- Metrics (Prometheus / Datadog / Cloud Monitoring)
+
+### Available Signals
+- `http.request`
+- `http.error`
+- `http.latency_ms`
+
+### Custom Observer Example
+
+```php
+use OktayAydogan\UsdtMultichainScanner\Support\Observer;
+
+class MyObserver implements Observer {
+  public function info(string $message, array $context = []): void {
+    error_log($message . json_encode($context));
+  }
+  public function error(string $message, array $context = []): void {
+    error_log('[ERROR] ' . $message . json_encode($context));
+  }
+  public function metric(string $name, float|int $value, array $tags = []): void {
+    // push to metrics backend
+  }
+}
+```
+
+---
+
+## Unit Tests
+
+This package includes PHPUnit test scaffolding.
+
+Run tests:
+
+```bash
+composer require --dev phpunit/phpunit
+vendor/bin/phpunit
+```
+
+Tests cover:
+- Factory creation
+- Config parsing
+- Scanner instantiation
+
+---
