@@ -138,3 +138,31 @@ foreach ($transfers as $tx) {
 
 ## License
 MIT
+
+---
+
+## Fallback Providers
+
+The scanner automatically falls back if the primary provider fails.
+
+### EVM
+- Primary: network-specific Scan API (Etherscan, BscScan, etc.)
+- Fallback: optional secondary endpoint via `fallback_endpoint`
+
+### Tron
+- Primary: TronScan API
+- Fallback: TronGrid public API
+
+Example:
+
+```php
+'tron' => [
+  'enabled' => true,
+  'type' => 'tron',
+  'address' => 'T...',
+  'api_key' => 'TRONSCAN_KEY',
+  // optional overrides
+  'endpoint' => 'https://apilist.tronscanapi.com',
+  'fallback_endpoint' => 'https://api.trongrid.io/v1',
+],
+```
