@@ -1,26 +1,25 @@
 # USDT Multichain Scanner
 
-Production-ready, read-only USDT incoming payment scanner for **multiple blockchains**.
+Production-ready, **read-only** USDT incoming payment scanner for multiple blockchains.
 
-This library normalizes USDT transfers across chains and lets **you** decide
-how to credit customers.
+This library normalizes USDT transfers across chains and returns a single DTO format.
+You decide how to match customers and credit balances (idempotent by `txid`).
 
 ---
 
 ## Supported Networks
 
-| Network | Driver |
-|-------|--------|
-| Ethereum (ERC20) | evm |
-| BNB Smart Chain (BEP20) | evm |
-| Polygon | evm |
-| Arbitrum | evm |
-| Optimism | evm |
-| Tron (TRC20) | trc20 |
+- EVM (type: `evm`)
+  - Ethereum
+  - BNB Smart Chain (BSC)
+  - Polygon
+  - Arbitrum
+  - Optimism
+- Tron (type: `tron`)
 
 ---
 
-## Installation
+## Install
 
 ```bash
 composer require oktayaydogan/usdt-multichain-scanner
@@ -28,67 +27,83 @@ composer require oktayaydogan/usdt-multichain-scanner
 
 ---
 
-## Configuration Philosophy (Important)
+## Configuration (Unified Model)
 
-- Config is **network-based**, not wallet-based
-- Only **enabled networks** are scanned
-- API URLs are **optional**
-- Sensible **defaults are applied automatically**
-- No private keys, ever
-
----
-
-## Minimal Configuration (Recommended)
+All networks use the same config shape:
 
 ```php
-$config = [
-    'bep20' => [
-        'enabled' => true,
-        'address' => '0xYourBscAddress',
-        'api_key' => 'BSCSCAN_API_KEY',
+return [
+  'networks' => [
+    '<network>' => [
+      'enabled' => true|false,
+      'type' => 'evm'|'tron',
+      'address' => '...',
+      // optional:
+      'api_key' => '...',
+      'endpoint' => '...',
+      'usdt_contract' => '...',
+      'timeout' => 10,
     ],
-
-    'trc20' => [
-        'enabled' => true,
-        'driver' => 'trc20',
-        'address' => 'TYourTronAddress',
-    ],
+  ],
 ];
 ```
 
-This works because:
-- BSC defaults to **BscScan**
-- TRC20 defaults to **TronGrid public API**
-- USDT contract addresses are auto-selected
+### Defaults (if you omit fields)
+
+**EVM defaults**
+- `endpoint` is selected by network key:
+  - `bsc` → BscScan
+  - `polygon` → PolygonScan
+  - `arbitrum` → ArbiScan
+  - `optimism` → Optimism Etherscan
+  - anything else → Etherscan
+- `usdt_contract` defaults:
+  - `bsc` → BSC USDT contract
+  - others → ERC20 USDT contract
+
+**Tron defaults**
+- `endpoint` defaults to TronScan API base: `https://apilist.tronscanapi.com`
+- TRC20 USDT contract is built-in.
+- TronScan expects an API Key in headers as `TRON-PRO-API-KEY` (recommended / may be required depending on endpoint and policy).
 
 ---
 
-## Full Configuration (All Options)
+## Minimal Config Examples
+
+### BSC + Tron
 
 ```php
-'erc20_eth' => [
-    'enabled' => true,
-    'driver' => 'evm',
-    'endpoint' => 'https://api.etherscan.io/api',
-    'address' => '0xEthAddress',
-    'api_key' => 'ETHERSCAN_KEY',
-    'usdt_contract' => '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-],
+return [
+  'networks' => [
+    'bsc' => [
+      'enabled' => true,
+      'type' => 'evm',
+      'address' => '0xYourBscAddress',
+      'api_key' => 'BSCSCAN_API_KEY',
+    ],
+    'tron' => [
+      'enabled' => true,
+      'type' => 'tron',
+      'address' => 'TYourTronAddress',
+      'api_key' => 'TRONSCAN_API_KEY', // sent as TRON-PRO-API-KEY
+    ],
+  ],
+];
+```
 
-'bep20' => [
-    'enabled' => true,
-    'driver' => 'evm',
-    'endpoint' => 'https://api.bscscan.com/api',
-    'address' => '0xBscAddress',
-    'api_key' => 'BSCSCAN_KEY',
-],
+### Ethereum only
 
-'trc20' => [
-    'enabled' => true,
-    'driver' => 'trc20',
-    'endpoint' => 'https://api.trongrid.io/v1',
-    'address' => 'TTronAddress',
-],
+```php
+return [
+  'networks' => [
+    'ethereum' => [
+      'enabled' => true,
+      'type' => 'evm',
+      'address' => '0xYourEthAddress',
+      'api_key' => 'ETHERSCAN_API_KEY',
+    ],
+  ],
+];
 ```
 
 ---
@@ -98,13 +113,15 @@ This works because:
 ```php
 use OktayAydogan\UsdtMultichainScanner\Registry\ScannerRegistry;
 
+$config = require __DIR__ . '/config/usdt.php';
+
 $registry = new ScannerRegistry($config);
 $transfers = $registry->fetchAll();
 
 foreach ($transfers as $tx) {
-    // idempotent check (txid)
-    // customer matching
-    // credit balance
+  // 1) idempotent check: UNIQUE(network, txid)
+  // 2) customer match (your whitelist)
+  // 3) credit balance
 }
 ```
 
@@ -112,19 +129,10 @@ foreach ($transfers as $tx) {
 
 ## Security Model
 
-- 🔒 Read-only APIs
-- 🔒 No private keys
-- 🔒 No signing
-- 🔒 Safe for cron & workers
-
----
-
-## Versioning Plan
-
-- v1.0.x → EVM support
-- v1.1.x → TRC20 support
-- v1.2.x → Cursor / since optimization
-- v1.3.x → Token-agnostic scanners
+- Read-only API usage
+- No private keys
+- No signing / sweeping
+- Safe for cron & workers
 
 ---
 
