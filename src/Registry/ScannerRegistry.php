@@ -8,11 +8,22 @@ final class ScannerRegistry
 {
     private array $scanners = [];
 
+    /**
+     * Expected config:
+     * [
+     *   'networks' => [
+     *     'ethereum' => ['enabled'=>true,'type'=>'evm','address'=>'0x...','api_key'=>'...'],
+     *     'tron'     => ['enabled'=>true,'type'=>'tron','address'=>'T...','api_key'=>'...'],
+     *   ]
+     * ]
+     */
     public function __construct(array $config)
     {
-        foreach ($config as $network => $cfg) {
+        $networks = $config['networks'] ?? $config; // backwards-compatible fallback
+        foreach ($networks as $network => $cfg) {
+            if (!is_array($cfg)) continue;
             if (!($cfg['enabled'] ?? false)) continue;
-            $this->scanners[] = ScannerFactory::make($network, $cfg);
+            $this->scanners[] = ScannerFactory::make((string)$network, $cfg);
         }
     }
 
