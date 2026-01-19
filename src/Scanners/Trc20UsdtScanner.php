@@ -17,7 +17,9 @@ final class Trc20UsdtScanner implements ScannerInterface
         private readonly ?string $apiKey = null,
         private readonly int $timeoutSeconds = 10,
         private readonly ?string $fallbackEndpoint = null,
-        private readonly ?int $sinceMs = null
+        private readonly ?int $sinceMs = null,
+        private readonly int $retries = 2,
+        private readonly int $baseBackoffMs = 300
     ) {}
 
     public function fetch(): array
@@ -45,7 +47,7 @@ final class Trc20UsdtScanner implements ScannerInterface
         $headers = [];
         if ($this->apiKey) $headers[] = 'TRON-PRO-API-KEY: ' . $this->apiKey;
 
-        $json = HttpClient::get($url, $this->timeoutSeconds, $headers);
+        $json = HttpClient::get($url, $this->timeoutSeconds, $headers, $this->retries, $this->baseBackoffMs);
         $rows = $json['token_transfers'] ?? [];
 
         return $this->mapRows($rows, 'to_address', 'from_address', 'block_ts', 'quant');
@@ -54,7 +56,7 @@ final class Trc20UsdtScanner implements ScannerInterface
     private function fetchFromTronGrid(string $endpoint): array
     {
         $url = rtrim($endpoint, '/') . "/accounts/{$this->address}/transactions/trc20?limit=50";
-        $json = HttpClient::get($url, $this->timeoutSeconds);
+        $json = HttpClient::get($url, $this->timeoutSeconds, [], $this->retries, $this->baseBackoffMs);
         $rows = $json['data'] ?? [];
 
         return $this->mapRows($rows, 'to', 'from', 'block_timestamp', 'value');
