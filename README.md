@@ -166,3 +166,47 @@ Example:
   'fallback_endpoint' => 'https://api.trongrid.io/v1',
 ],
 ```
+
+
+---
+
+## Cursor / Since Support
+
+You can limit scans to **new transactions only** using `since`.
+
+- EVM: `since` = unix timestamp (seconds)
+- Tron: `since` = unix timestamp (milliseconds)
+
+Example:
+
+```php
+'bsc' => [
+  'enabled' => true,
+  'type' => 'evm',
+  'address' => '0x...',
+  'api_key' => 'BSCSCAN_KEY',
+  'since' => 1710000000,
+],
+```
+
+Store the latest processed timestamp and pass it back on the next run.
+
+---
+
+## Retry & Backoff
+
+HTTP requests automatically retry on failure.
+
+Defaults:
+- retries: 2
+- backoff: exponential (300ms * attempt)
+
+Safe for rate-limited APIs.
+
+---
+
+## Async / Worker Usage
+
+See `examples/worker.php` for a cron/queue-friendly pattern.
+
+---
