@@ -10,6 +10,8 @@ final class ScannerFactory
     public static function make(string $network, array $cfg): ScannerInterface
     {
         $type = $cfg['type'] ?? 'evm';
+        $retries = (int)($cfg['retry']['retries'] ?? $cfg['retries'] ?? 2);
+        $baseBackoffMs = (int)($cfg['retry']['base_backoff_ms'] ?? $cfg['base_backoff_ms'] ?? 300);
 
         return match ($type) {
             'tron' => new Trc20UsdtScanner(
@@ -19,7 +21,9 @@ final class ScannerFactory
                 apiKey: $cfg['api_key'] ?? null,
                 timeoutSeconds: (int)($cfg['timeout'] ?? 10),
                 fallbackEndpoint: $cfg['fallback_endpoint'] ?? 'https://api.trongrid.io/v1',
-                sinceMs: $cfg['since'] ?? null
+                sinceMs: $cfg['since'] ?? null,
+                retries: $retries,
+                baseBackoffMs: $baseBackoffMs
             ),
 
             default => new EvmScanUsdtScanner(
@@ -30,7 +34,9 @@ final class ScannerFactory
                 usdtContract: $cfg['usdt_contract'] ?? self::defaultUsdtContract($network),
                 timeoutSeconds: (int)($cfg['timeout'] ?? 10),
                 fallbackEndpoint: $cfg['fallback_endpoint'] ?? null,
-                sinceTs: $cfg['since'] ?? null
+                sinceTs: $cfg['since'] ?? null,
+                retries: $retries,
+                baseBackoffMs: $baseBackoffMs
             ),
         };
     }
