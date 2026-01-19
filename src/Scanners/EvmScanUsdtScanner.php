@@ -9,16 +9,29 @@ final class EvmScanUsdtScanner implements ScannerInterface
 {
     public function __construct(
         private readonly string $network,
-        private readonly string $endpoint,
+        private readonly string $primaryEndpoint,
         private readonly string $address,
         private readonly string $apiKey,
         private readonly string $usdtContract,
-        private readonly int $timeoutSeconds = 10
+        private readonly int $timeoutSeconds = 10,
+        private readonly ?string $fallbackEndpoint = null
     ) {}
 
     public function fetch(): array
     {
-        $url = $this->endpoint . '?' . http_build_query([
+        try {
+            return $this->fetchFrom($this->primaryEndpoint);
+        } catch (\Throwable $e) {
+            if ($this->fallbackEndpoint) {
+                return $this->fetchFrom($this->fallbackEndpoint);
+            }
+            throw $e;
+        }
+    }
+
+    private function fetchFrom(string $endpoint): array
+    {
+        $url = $endpoint . '?' . http_build_query([
             'module' => 'account',
             'action' => 'tokentx',
             'contractaddress' => $this->usdtContract,
@@ -32,17 +45,9 @@ final class EvmScanUsdtScanner implements ScannerInterface
 
         foreach ($json['result'] ?? [] as $tx) {
             if (!is_array($tx)) continue;
+            if (strtolower((string)($tx['to'] ?? '')) !== strtolower($this->address)) continue;
 
-            if (strtolower((string)($tx['to'] ?? '')) !== strtolower($this->address)) {
-                continue;
-            }
-
-            $decimals = (int)($tx['tokenDecimal'] ?? 0);
-            if ($decimals <= 0) {
-                // fall back for USDT if API doesn't return tokenDecimal
-                $decimals = 6;
-            }
-
+            $decimals = (int)($tx['tokenDecimal'] ?? 6);
             $value = (string)($tx['value'] ?? '0');
             $amount = bcdiv($value, bcpow('10', (string)$decimals), $decimals);
 
