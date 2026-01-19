@@ -18,7 +18,8 @@ final class ScannerFactory
                 primaryEndpoint: $cfg['endpoint'] ?? 'https://apilist.tronscanapi.com',
                 apiKey: $cfg['api_key'] ?? null,
                 timeoutSeconds: (int)($cfg['timeout'] ?? 10),
-                fallbackEndpoint: $cfg['fallback_endpoint'] ?? 'https://api.trongrid.io/v1'
+                fallbackEndpoint: $cfg['fallback_endpoint'] ?? 'https://api.trongrid.io/v1',
+                sinceMs: $cfg['since'] ?? null
             ),
 
             default => new EvmScanUsdtScanner(
@@ -28,7 +29,8 @@ final class ScannerFactory
                 apiKey: $cfg['api_key'] ?? '',
                 usdtContract: $cfg['usdt_contract'] ?? self::defaultUsdtContract($network),
                 timeoutSeconds: (int)($cfg['timeout'] ?? 10),
-                fallbackEndpoint: $cfg['fallback_endpoint'] ?? null
+                fallbackEndpoint: $cfg['fallback_endpoint'] ?? null,
+                sinceTs: $cfg['since'] ?? null
             ),
         };
     }
