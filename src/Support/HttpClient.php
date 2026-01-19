@@ -5,14 +5,22 @@ use RuntimeException;
 
 final class HttpClient
 {
-    public static function get(string $url, int $timeout = 10): array
+    /**
+     * @param string[] $headers
+     */
+    public static function get(string $url, int $timeout = 10, array $headers = []): array
     {
+        $headers = array_values(array_filter($headers, fn($h) => is_string($h) && $h !== ''));
+        if (!in_array('Accept: application/json', $headers, true)) {
+            $headers[] = 'Accept: application/json';
+        }
+
         $ctx = stream_context_create([
             'http' => [
-                'method' => 'GET',
+                'method'  => 'GET',
                 'timeout' => $timeout,
-                'header' => ['Accept: application/json'],
-            ]
+                'header'  => $headers,
+            ],
         ]);
 
         $raw = @file_get_contents($url, false, $ctx);
