@@ -16,7 +16,8 @@ final class Trc20UsdtScanner implements ScannerInterface
         private readonly string $primaryEndpoint,
         private readonly ?string $apiKey = null,
         private readonly int $timeoutSeconds = 10,
-        private readonly ?string $fallbackEndpoint = null
+        private readonly ?string $fallbackEndpoint = null,
+        private readonly ?int $sinceMs = null
     ) {}
 
     public function fetch(): array
@@ -42,9 +43,7 @@ final class Trc20UsdtScanner implements ScannerInterface
         ]);
 
         $headers = [];
-        if ($this->apiKey) {
-            $headers[] = 'TRON-PRO-API-KEY: ' . $this->apiKey;
-        }
+        if ($this->apiKey) $headers[] = 'TRON-PRO-API-KEY: ' . $this->apiKey;
 
         $json = HttpClient::get($url, $this->timeoutSeconds, $headers);
         $rows = $json['token_transfers'] ?? [];
@@ -68,6 +67,9 @@ final class Trc20UsdtScanner implements ScannerInterface
             if (!is_array($tx)) continue;
             if (($tx[$toKey] ?? '') !== $this->address) continue;
 
+            $ts = (int)($tx[$tsKey] ?? 0);
+            if ($this->sinceMs !== null && $ts <= $this->sinceMs) continue;
+
             $raw = (string)($tx[$valueKey] ?? '0');
             $amount = bcdiv($raw, '1000000', self::DECIMALS);
 
@@ -77,7 +79,7 @@ final class Trc20UsdtScanner implements ScannerInterface
                 (string)($tx[$fromKey] ?? ''),
                 (string)($tx[$toKey] ?? ''),
                 $amount,
-                (int)($tx[$tsKey] ?? 0)
+                $ts
             );
         }
         return $out;
