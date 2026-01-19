@@ -15,7 +15,9 @@ final class EvmScanUsdtScanner implements ScannerInterface
         private readonly string $usdtContract,
         private readonly int $timeoutSeconds = 10,
         private readonly ?string $fallbackEndpoint = null,
-        private readonly ?int $sinceTs = null // seconds
+        private readonly ?int $sinceTs = null,
+        private readonly int $retries = 2,
+        private readonly int $baseBackoffMs = 300
     ) {}
 
     public function fetch(): array
@@ -32,22 +34,16 @@ final class EvmScanUsdtScanner implements ScannerInterface
 
     private function fetchFrom(string $endpoint): array
     {
-        $params = [
+        $url = $endpoint . '?' . http_build_query([
             'module' => 'account',
             'action' => 'tokentx',
             'contractaddress' => $this->usdtContract,
             'address' => $this->address,
             'sort' => 'desc',
             'apikey' => $this->apiKey,
-        ];
+        ]);
 
-        if ($this->sinceTs !== null) {
-            // Etherscan-style filtering client-side (API lacks since param)
-            // We'll filter after fetch by timestamp.
-        }
-
-        $url = $endpoint . '?' . http_build_query($params);
-        $json = HttpClient::get($url, $this->timeoutSeconds);
+        $json = HttpClient::get($url, $this->timeoutSeconds, [], $this->retries, $this->baseBackoffMs);
         $out = [];
 
         foreach ($json['result'] ?? [] as $tx) {
