@@ -12,7 +12,8 @@ final class EvmScanUsdtScanner implements ScannerInterface
         private readonly string $endpoint,
         private readonly string $address,
         private readonly string $apiKey,
-        private readonly string $usdtContract
+        private readonly string $usdtContract,
+        private readonly int $timeoutSeconds = 10
     ) {}
 
     public function fetch(): array
@@ -26,22 +27,32 @@ final class EvmScanUsdtScanner implements ScannerInterface
             'apikey' => $this->apiKey,
         ]);
 
-        $json = HttpClient::get($url);
+        $json = HttpClient::get($url, $this->timeoutSeconds);
         $out = [];
 
         foreach ($json['result'] ?? [] as $tx) {
-            if (strtolower($tx['to']) !== strtolower($this->address)) continue;
+            if (!is_array($tx)) continue;
 
-            $decimals = (int)$tx['tokenDecimal'];
-            $amount = bcdiv($tx['value'], bcpow('10', (string)$decimals), $decimals);
+            if (strtolower((string)($tx['to'] ?? '')) !== strtolower($this->address)) {
+                continue;
+            }
+
+            $decimals = (int)($tx['tokenDecimal'] ?? 0);
+            if ($decimals <= 0) {
+                // fall back for USDT if API doesn't return tokenDecimal
+                $decimals = 6;
+            }
+
+            $value = (string)($tx['value'] ?? '0');
+            $amount = bcdiv($value, bcpow('10', (string)$decimals), $decimals);
 
             $out[] = new UsdtTransfer(
                 $this->network,
-                $tx['hash'],
-                $tx['from'],
-                $tx['to'],
+                (string)($tx['hash'] ?? ''),
+                (string)($tx['from'] ?? ''),
+                (string)($tx['to'] ?? ''),
                 $amount,
-                ((int)$tx['timeStamp']) * 1000
+                ((int)($tx['timeStamp'] ?? 0)) * 1000
             );
         }
 
