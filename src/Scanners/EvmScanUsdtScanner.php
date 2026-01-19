@@ -14,7 +14,8 @@ final class EvmScanUsdtScanner implements ScannerInterface
         private readonly string $apiKey,
         private readonly string $usdtContract,
         private readonly int $timeoutSeconds = 10,
-        private readonly ?string $fallbackEndpoint = null
+        private readonly ?string $fallbackEndpoint = null,
+        private readonly ?int $sinceTs = null // seconds
     ) {}
 
     public function fetch(): array
@@ -31,21 +32,30 @@ final class EvmScanUsdtScanner implements ScannerInterface
 
     private function fetchFrom(string $endpoint): array
     {
-        $url = $endpoint . '?' . http_build_query([
+        $params = [
             'module' => 'account',
             'action' => 'tokentx',
             'contractaddress' => $this->usdtContract,
             'address' => $this->address,
             'sort' => 'desc',
             'apikey' => $this->apiKey,
-        ]);
+        ];
 
+        if ($this->sinceTs !== null) {
+            // Etherscan-style filtering client-side (API lacks since param)
+            // We'll filter after fetch by timestamp.
+        }
+
+        $url = $endpoint . '?' . http_build_query($params);
         $json = HttpClient::get($url, $this->timeoutSeconds);
         $out = [];
 
         foreach ($json['result'] ?? [] as $tx) {
             if (!is_array($tx)) continue;
             if (strtolower((string)($tx['to'] ?? '')) !== strtolower($this->address)) continue;
+
+            $ts = (int)($tx['timeStamp'] ?? 0);
+            if ($this->sinceTs !== null && $ts <= $this->sinceTs) continue;
 
             $decimals = (int)($tx['tokenDecimal'] ?? 6);
             $value = (string)($tx['value'] ?? '0');
@@ -57,7 +67,7 @@ final class EvmScanUsdtScanner implements ScannerInterface
                 (string)($tx['from'] ?? ''),
                 (string)($tx['to'] ?? ''),
                 $amount,
-                ((int)($tx['timeStamp'] ?? 0)) * 1000
+                $ts * 1000
             );
         }
 
