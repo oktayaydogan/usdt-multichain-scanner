@@ -42,17 +42,6 @@ final class ScannerFactory
         };
     }
 
-    private static function defaultEvmEndpoint(string $network): string
-    {
-        return match (true) {
-            str_contains($network, 'bsc') || str_contains($network, 'bep') => 'https://api.bscscan.com/api',
-            str_contains($network, 'polygon') => 'https://api.polygonscan.com/api',
-            str_contains($network, 'arbitrum') => 'https://api.arbiscan.io/api',
-            str_contains($network, 'optimism') => 'https://api-optimistic.etherscan.io/api',
-            default => 'https://api.etherscan.io/api',
-        };
-    }
-
     private static function defaultChainId(string $network): int
     {
         return match (true) {
