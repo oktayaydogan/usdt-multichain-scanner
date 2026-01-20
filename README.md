@@ -43,6 +43,7 @@ return [
       'endpoint' => '...',
       'usdt_contract' => '...',
       'timeout' => 10,
+      'chain_id' => 1,
     ],
   ],
 ];
