@@ -31,6 +31,7 @@ final class ScannerFactory
                 primaryEndpoint: $cfg['endpoint'] ?? self::defaultEvmEndpoint($network),
                 address: $cfg['address'],
                 apiKey: $cfg['api_key'] ?? '',
+                chainId: (int)($cfg['chain_id'] ?? self::defaultChainId($network)),
                 usdtContract: $cfg['usdt_contract'] ?? self::defaultUsdtContract($network),
                 timeoutSeconds: (int)($cfg['timeout'] ?? 10),
                 fallbackEndpoint: $cfg['fallback_endpoint'] ?? null,
@@ -49,6 +50,17 @@ final class ScannerFactory
             str_contains($network, 'arbitrum') => 'https://api.arbiscan.io/api',
             str_contains($network, 'optimism') => 'https://api-optimistic.etherscan.io/api',
             default => 'https://api.etherscan.io/api',
+        };
+    }
+
+    private static function defaultChainId(string $network): int
+    {
+        return match (true) {
+            str_contains($network, 'bsc') || str_contains($network, 'bep') => 56,
+            str_contains($network, 'polygon') => 137,
+            str_contains($network, 'arbitrum') => 42161,
+            str_contains($network, 'optimism') => 10,
+            default => 1,
         };
     }
 
