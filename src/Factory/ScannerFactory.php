@@ -28,7 +28,7 @@ final class ScannerFactory
 
             default => new EvmScanUsdtScanner(
                 network: $network,
-                primaryEndpoint: $cfg['endpoint'] ?? self::defaultEvmEndpoint($network),
+                primaryEndpoint: $cfg['endpoint'] ?? 'https://api.etherscan.io/v2/api',
                 address: $cfg['address'],
                 apiKey: $cfg['api_key'] ?? '',
                 chainId: (int)($cfg['chain_id'] ?? self::defaultChainId($network)),
