@@ -1,4 +1,5 @@
 <?php
+
 namespace OktayAydogan\UsdtMultichainScanner\Scanners;
 
 use OktayAydogan\UsdtMultichainScanner\Contracts\ScannerInterface;
@@ -13,6 +14,7 @@ final class EvmScanUsdtScanner implements ScannerInterface
         private readonly string $address,
         private readonly string $apiKey,
         private readonly string $usdtContract,
+        private readonly int $chainId,
         private readonly int $timeoutSeconds = 10,
         private readonly ?string $fallbackEndpoint = null,
         private readonly ?int $sinceTs = null,
@@ -41,6 +43,7 @@ final class EvmScanUsdtScanner implements ScannerInterface
             'address' => $this->address,
             'sort' => 'desc',
             'apikey' => $this->apiKey,
+            'chainid' => $this->chainId,
         ]);
 
         $json = HttpClient::get($url, $this->timeoutSeconds, [], $this->retries, $this->baseBackoffMs);
